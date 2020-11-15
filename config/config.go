@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/mohae/deepcopy"
@@ -125,6 +126,9 @@ type Server struct {
 
 	// Optional metrics handler configuration
 	Metrics Metrics `yaml:"metrics,omitempty"`
+
+	// Optional OPS handler configuration
+	OPS OPS `yaml:"ops,omitempty"`
 
 	// Catches all undefined fields
 	XXX map[string]interface{} `yaml:",inline"`
@@ -249,6 +253,46 @@ func (c *HTTPS) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return fmt.Errorf("`https.cert_file` must be specified")
 	}
 	return checkOverflow(c.XXX, "https")
+}
+
+// OPS describes configuration to access ping and metrics endpoint on specific port
+type OPS struct {
+	// TCP address to listen to for ops endpoints
+	// Default is `:81`
+	OpsAddr string `yaml:"ops_addr,omitempty"`
+
+	NetworksOrGroups NetworksOrGroups `yaml:"allowed_networks,omitempty"`
+
+	// List of networks that access is allowed from
+	// Each list item could be IP address or subnet mask
+	// if omitted or zero - no limits would be applied
+	AllowedNetworks Networks `yaml:"-"`
+
+	// Whether to support Autocert handler for http-01 challenge
+	ForceAutocertHandler bool
+
+	TimeoutCfg `yaml:",inline"`
+
+	// Catches all undefined fields and must be empty after parsing.
+	XXX map[string]interface{} `yaml:",inline"`
+}
+
+// UnmarshalYAML implements the yaml.Unmarshaler interface.
+func (c *OPS) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	type plain OPS
+	if err := unmarshal((*plain)(c)); err != nil {
+		return err
+	}
+	if len(c.OpsAddr) == 0 {
+		c.OpsAddr = ":81"
+	}
+	if c.ReadTimeout == 0 {
+		c.ReadTimeout = Duration(time.Minute)
+	}
+	if c.IdleTimeout == 0 {
+		c.IdleTimeout = Duration(time.Minute * 10)
+	}
+	return checkOverflow(c.XXX, "http")
 }
 
 // Autocert configuration via letsencrypt
@@ -725,6 +769,8 @@ func LoadFile(filename string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	// expand environment variables
+	content = []byte(os.ExpandEnv(string(content)))
 	cfg := &Config{}
 	if err := yaml.Unmarshal([]byte(content), cfg); err != nil {
 		return nil, err

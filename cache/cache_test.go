@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Vertamedia/chproxy/config"
+	"github.com/gdd3/chproxy/config"
 )
 
 const testDir = "./test-data"

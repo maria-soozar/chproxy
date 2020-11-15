@@ -14,8 +14,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Vertamedia/chproxy/config"
-	"github.com/Vertamedia/chproxy/log"
+	"github.com/gdd3/chproxy/config"
+	"github.com/gdd3/chproxy/log"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -81,6 +81,9 @@ func main() {
 	}
 	if len(server.HTTP.ListenAddr) != 0 {
 		go serve(server.HTTP)
+	}
+	if len(server.OPS.OpsAddr) != 0 {
+		go serveOPS(server.OPS)
 	}
 
 	select {}
@@ -155,6 +158,16 @@ func serve(cfg config.HTTP) {
 	}
 }
 
+func serveOPS(cfg config.OPS) {
+	var h http.Handler
+	ln := newListener(cfg.OpsAddr)
+	h = http.HandlerFunc(OPSHandler)
+	log.Infof("Serving http on %q", cfg.OpsAddr)
+	if err := listenAndServe(ln, h, cfg.TimeoutCfg); err != nil {
+		log.Fatalf("HTTP server error on %q: %s", cfg.OpsAddr, err)
+	}
+}
+
 func newTLSConfig(cfg config.HTTPS) *tls.Config {
 	tlsCfg := tls.Config{
 		PreferServerCipherSuites: true,
@@ -223,6 +236,23 @@ func serveHTTP(rw http.ResponseWriter, r *http.Request) {
 		}
 		proxy.refreshCacheMetrics()
 		promHandler.ServeHTTP(rw, r)
+	case "/ping":
+		var err error
+		var an *config.Networks
+		if r.TLS != nil {
+			an = allowedNetworksHTTPS.Load().(*config.Networks)
+			err = fmt.Errorf("https connections are not allowed from %s", r.RemoteAddr)
+		} else {
+			an = allowedNetworksHTTP.Load().(*config.Networks)
+			err = fmt.Errorf("http connections are not allowed from %s", r.RemoteAddr)
+		}
+		if !an.Contains(r.RemoteAddr) {
+			rw.Header().Set("Connection", "close")
+			respondWith(rw, err, http.StatusForbidden)
+			return
+		}
+		rw.WriteHeader(http.StatusOK)
+		fmt.Fprintf(rw, "Ok.")
 	case "/", "/query":
 		var err error
 		var an *config.Networks
@@ -239,6 +269,58 @@ func serveHTTP(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 		proxy.ServeHTTP(rw, r)
+	default:
+		badRequest.Inc()
+		err := fmt.Errorf("%q: unsupported path: %q", r.RemoteAddr, r.URL.Path)
+		rw.Header().Set("Connection", "close")
+		respondWith(rw, err, http.StatusBadRequest)
+	}
+}
+
+func OPSHandler(rw http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet, http.MethodPost:
+		// Only GET and POST methods are supported.
+	case http.MethodOptions:
+		// This is required for CORS shit :)
+		rw.Header().Set("Allow", "GET,POST")
+		return
+	default:
+		err := fmt.Errorf("%q: unsupported method %q", r.RemoteAddr, r.Method)
+		rw.Header().Set("Connection", "close")
+		respondWith(rw, err, http.StatusMethodNotAllowed)
+		return
+	}
+
+	switch r.URL.Path {
+	case "/favicon.ico":
+	case "/metrics":
+		an := allowedNetworksMetrics.Load().(*config.Networks)
+		if !an.Contains(r.RemoteAddr) {
+			err := fmt.Errorf("connections to /metrics are not allowed from %s", r.RemoteAddr)
+			rw.Header().Set("Connection", "close")
+			respondWith(rw, err, http.StatusForbidden)
+			return
+		}
+		proxy.refreshCacheMetrics()
+		promHandler.ServeHTTP(rw, r)
+	case "/ping":
+		var err error
+		var an *config.Networks
+		if r.TLS != nil {
+			an = allowedNetworksHTTPS.Load().(*config.Networks)
+			err = fmt.Errorf("https connections are not allowed from %s", r.RemoteAddr)
+		} else {
+			an = allowedNetworksHTTP.Load().(*config.Networks)
+			err = fmt.Errorf("http connections are not allowed from %s", r.RemoteAddr)
+		}
+		if !an.Contains(r.RemoteAddr) {
+			rw.Header().Set("Connection", "close")
+			respondWith(rw, err, http.StatusForbidden)
+			return
+		}
+		rw.WriteHeader(http.StatusOK)
+		fmt.Fprintf(rw, "Ok.")
 	default:
 		badRequest.Inc()
 		err := fmt.Errorf("%q: unsupported path: %q", r.RemoteAddr, r.URL.Path)
