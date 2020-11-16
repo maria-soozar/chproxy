@@ -23,6 +23,8 @@ import (
 var (
 	configFile = flag.String("config", "", "Proxy configuration filename")
 	version    = flag.Bool("version", false, "Prints current version and exits")
+	disableTCP4 = flag.Bool("disableTCP4", false, "Whether to listen on an only IPv6 address. By default both IPv4 and IPv6 listening are enabled")
+	disableTCP6 = flag.Bool("disableTCP6", false, "Whether to listen on an only IPv4 address. By default both IPv4 and IPv6 listening are enabled")
 )
 
 var (
@@ -118,7 +120,19 @@ func newAutocertManager(cfg config.Autocert) *autocert.Manager {
 }
 
 func newListener(listenAddr string) net.Listener {
-	ln, err := net.Listen("tcp4", listenAddr)
+	network := "tcp"
+	if *disableTCP4 && *disableTCP6 {
+		// Enable listening on only tcp4
+		log.Infof("Both tcp4 and tcp6 can't be disabled, hence listening on tcp4")
+		network = "tcp4"
+	} else if *disableTCP6 {
+		// Enable listening on only tcp4
+		network = "tcp4"
+	} else if *disableTCP4 {
+		// Enable listening on only tcp6
+		network = "tcp6"
+	}
+	ln, err := net.Listen(network, listenAddr)
 	if err != nil {
 		log.Fatalf("cannot listen for %q: %s", listenAddr, err)
 	}
