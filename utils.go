@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/gdd3/chproxy/chdecompressor"
@@ -43,12 +45,46 @@ func getAuth(req *http.Request) (string, string) {
 	return "default", ""
 }
 
+// getSessionId retrieves session id
+func getSessionId(req *http.Request) string {
+	params := req.URL.Query()
+	sessionId := params.Get("session_id")
+	return sessionId
+}
+
+// getSessionId retrieves session id
+func getSessionTimeout(req *http.Request) int {
+	params := req.URL.Query()
+	sessionTimeout, err := strconv.Atoi(params.Get("session_timeout"))
+	if err != nil && sessionTimeout > 0 {
+		return sessionTimeout
+	}
+	return 60
+}
+
 // getQuerySnippet returns query snippet.
 //
 // getQuerySnippet must be called only for error reporting.
 func getQuerySnippet(req *http.Request) string {
-	if req.Method == http.MethodGet {
-		return req.URL.Query().Get("query")
+	query := req.URL.Query().Get("query")
+	body := getQuerySnippetFromBody(req)
+
+	if len(query) != 0 && len(body) != 0 {
+		query += "\n"
+	}
+
+	return query + body
+}
+
+func hash(s string) uint32 {
+	h := fnv.New32a()
+	h.Write([]byte(s))
+	return h.Sum32()
+}
+
+func getQuerySnippetFromBody(req *http.Request) string {
+	if req.Body == nil {
+		return ""
 	}
 
 	crc, ok := req.Body.(*cachedReadCloser)
@@ -77,6 +113,7 @@ func getQuerySnippet(req *http.Request) string {
 	if len(b) > 0 {
 		return string(b)
 	}
+
 	// The data failed to be decompressed. Return compressed data
 	// instead of an empty string.
 	return data
@@ -84,9 +121,31 @@ func getQuerySnippet(req *http.Request) string {
 
 // getFullQuery returns full query from req.
 func getFullQuery(req *http.Request) ([]byte, error) {
-	if req.Method == http.MethodGet {
-		return []byte(req.URL.Query().Get("query")), nil
+	var result bytes.Buffer
+
+	if req.URL.Query().Get("query") != "" {
+		result.WriteString(req.URL.Query().Get("query"))
 	}
+
+	body, err := getFullQueryFromBody(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if result.Len() != 0 && len(body) != 0 {
+		result.WriteByte('\n')
+	}
+
+	result.Write(body)
+
+	return result.Bytes(), nil
+}
+
+func getFullQueryFromBody(req *http.Request) ([]byte, error) {
+	if req.Body == nil {
+		return nil, nil
+	}
+
 	data, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		return nil, err
@@ -102,19 +161,28 @@ func getFullQuery(req *http.Request) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot uncompress query: %s", err)
 	}
+
 	return b, nil
 }
+
+var cachableStatements = []string{"SELECT", "WITH"}
 
 // canCacheQuery returns true if q can be cached.
 func canCacheQuery(q []byte) bool {
 	q = skipLeadingComments(q)
 
-	// Currently only SELECT queries may be cached.
-	if len(q) < len("SELECT") {
-		return false
+	for _, statement := range cachableStatements {
+		if len(q) < len(statement) {
+			continue
+		}
+
+		l := bytes.ToUpper(q[:len(statement)])
+		if bytes.HasPrefix(l, []byte(statement)) {
+			return true
+		}
 	}
-	q = bytes.ToUpper(q[:len("SELECT")])
-	return bytes.HasPrefix(q, []byte("SELECT"))
+
+	return false
 }
 
 func skipLeadingComments(q []byte) []byte {

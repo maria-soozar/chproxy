@@ -1,3 +1,14 @@
+.DS_Store
+
 /chproxy
 /tags
 .idea/
+/dist
+.vscode/
+
+# Documentation dependencies and artefacts
+/docs/dist
+/docs/node_modules
+/docs/.output
+/docs/.nuxt
+/docs/static/sw.js

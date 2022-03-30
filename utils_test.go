@@ -57,6 +57,7 @@ func TestCanCacheQuery(t *testing.T) {
 	testCanCacheQuery(t, "\t\t   sElECt 123   ", true)
 	testCanCacheQuery(t, "   --- sd s\n /* dfsf */\n seleCT ", true)
 	testCanCacheQuery(t, "   --- sd s\n /* dfsf */\n insert ", false)
+	testCanCacheQuery(t, "WITH 1 as alias SELECT alias FROM nothing ", true)
 }
 
 func testCanCacheQuery(t *testing.T, q string, expected bool) {
@@ -77,6 +78,36 @@ func TestGetQuerySnippetGET(t *testing.T) {
 	query := getQuerySnippet(req)
 	if query != q {
 		t.Fatalf("got: %q; expected: %q", query, q)
+	}
+}
+
+func TestGetQuerySnippetGETBody(t *testing.T) {
+	q := "SELECT column FROM table"
+	body := bytes.NewBufferString(q)
+	req, err := http.NewRequest("GET", "", body)
+	checkErr(t, err)
+	query := getQuerySnippet(req)
+	if query != q {
+		t.Fatalf("got: %q; expected: %q", query, q)
+	}
+}
+
+func TestGetQuerySnippetGETBothQueryAndBody(t *testing.T) {
+	queryPart := "SELECT column"
+	bodyPart := "FROM table"
+	expectedQuery := "SELECT column\nFROM table"
+
+	body := bytes.NewBufferString(bodyPart)
+	req, err := http.NewRequest("GET", "", body)
+	checkErr(t, err)
+
+	params := make(url.Values)
+	params.Set("query", queryPart)
+	req.URL.RawQuery = params.Encode()
+
+	query := getQuerySnippet(req)
+	if query != expectedQuery {
+		t.Fatalf("got: %q; expected: %q", query, expectedQuery)
 	}
 }
 
