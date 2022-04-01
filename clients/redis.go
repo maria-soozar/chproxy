@@ -3,8 +3,8 @@ package clients
 import (
 	"context"
 	"fmt"
-	"github.com/gdd3/chproxy/config"
 	"github.com/go-redis/redis/v8"
+	"github.com/maria-soozar/chproxy/config"
 )
 
 // TODO Implement TLS Client

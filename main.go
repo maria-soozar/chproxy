@@ -14,8 +14,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gdd3/chproxy/config"
-	"github.com/gdd3/chproxy/log"
+	"github.com/maria-soozar/chproxy/config"
+	"github.com/maria-soozar/chproxy/log"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/crypto/acme/autocert"
 )

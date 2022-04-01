@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gdd3/chproxy/config"
+	"github.com/maria-soozar/chproxy/config"
 )
 
 const testDir = "./test-data"

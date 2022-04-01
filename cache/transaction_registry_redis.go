@@ -2,8 +2,8 @@ package cache
 
 import (
 	"context"
-	"github.com/gdd3/chproxy/log"
 	"github.com/go-redis/redis/v8"
+	"github.com/maria-soozar/chproxy/log"
 	"time"
 )
 

@@ -1,21 +1,17 @@
 package log
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 	"sync/atomic"
+
+	"github.com/YandexClassifieds/go-common/log/logrus"
 )
 
 var (
-	stdLogFlags     = log.LstdFlags | log.Lshortfile | log.LUTC
-	outputCallDepth = 2
+	stdLogFlags = log.LstdFlags | log.Lshortfile | log.LUTC
 
-	debugLogger = log.New(os.Stderr, "DEBUG: ", stdLogFlags)
-	infoLogger  = log.New(os.Stderr, "INFO: ", stdLogFlags)
-	errorLogger = log.New(os.Stderr, "ERROR: ", stdLogFlags)
-	fatalLogger = log.New(os.Stderr, "FATAL: ", stdLogFlags)
+	logger = logrus.NewLogrusLogger(logrus.WithLevel("debug"))
 
 	// NilLogger suppresses all the log messages.
 	NilLogger = log.New(ioutil.Discard, "", stdLogFlags)
@@ -25,13 +21,7 @@ var (
 // used while testing
 func SuppressOutput(suppress bool) {
 	if suppress {
-		debugLogger.SetOutput(ioutil.Discard)
-		infoLogger.SetOutput(ioutil.Discard)
-		errorLogger.SetOutput(ioutil.Discard)
-	} else {
-		debugLogger.SetOutput(os.Stderr)
-		infoLogger.SetOutput(os.Stderr)
-		errorLogger.SetOutput(os.Stderr)
+		logger.SetOutput(ioutil.Discard)
 	}
 }
 
@@ -51,31 +41,25 @@ func Debugf(format string, args ...interface{}) {
 	if atomic.LoadUint32(&debug) == 0 {
 		return
 	}
-	s := fmt.Sprintf(format, args...)
-	debugLogger.Output(outputCallDepth, s)
+	logger.Debugf(format, args...)
 }
 
 // Infof prints info message according to a format
 func Infof(format string, args ...interface{}) {
-	s := fmt.Sprintf(format, args...)
-	infoLogger.Output(outputCallDepth, s)
+	logger.Infof(format, args...)
 }
 
 // Errorf prints warning message according to a format
 func Errorf(format string, args ...interface{}) {
-	s := fmt.Sprintf(format, args...)
-	errorLogger.Output(outputCallDepth, s)
+	logger.Errorf(format, args...)
 }
 
 // ErrorWithCallDepth prints err into error log using the given callDepth.
 func ErrorWithCallDepth(err error, callDepth int) {
-	s := err.Error()
-	errorLogger.Output(outputCallDepth+callDepth, s)
+	logger.Errorf(err.Error())
 }
 
 // Fatalf prints fatal message according to a format and exits program
 func Fatalf(format string, args ...interface{}) {
-	s := fmt.Sprintf(format, args...)
-	fatalLogger.Output(outputCallDepth, s)
-	os.Exit(1)
+	logger.Fatalf(format, args...)
 }

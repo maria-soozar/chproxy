@@ -3,8 +3,8 @@ package cache
 import (
 	"bytes"
 	"fmt"
-	"github.com/gdd3/chproxy/config"
-	"github.com/gdd3/chproxy/log"
+	"github.com/maria-soozar/chproxy/config"
+	"github.com/maria-soozar/chproxy/log"
 	"io"
 	"io/ioutil"
 	"math/rand"

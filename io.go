@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/gdd3/chproxy/cache"
+	"github.com/maria-soozar/chproxy/cache"
 	"io"
 	"net/http"
 	"sync"

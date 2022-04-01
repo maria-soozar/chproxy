@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"github.com/gdd3/chproxy/log"
+	"github.com/maria-soozar/chproxy/log"
 	"sync"
 	"time"
 )

@@ -19,9 +19,9 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis/v2"
-	"github.com/gdd3/chproxy/cache"
-	"github.com/gdd3/chproxy/config"
-	"github.com/gdd3/chproxy/log"
+	"github.com/maria-soozar/chproxy/cache"
+	"github.com/maria-soozar/chproxy/config"
+	"github.com/maria-soozar/chproxy/log"
 )
 
 var testDir = "./temp-test-data"

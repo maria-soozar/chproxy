@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"github.com/gdd3/chproxy/config"
+	"github.com/maria-soozar/chproxy/config"
 	"os"
 	"testing"
 	"time"

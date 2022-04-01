@@ -12,8 +12,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gdd3/chproxy/chdecompressor"
-	"github.com/gdd3/chproxy/log"
+	"github.com/maria-soozar/chproxy/chdecompressor"
+	"github.com/maria-soozar/chproxy/log"
 )
 
 func respondWith(rw http.ResponseWriter, err error, status int) {

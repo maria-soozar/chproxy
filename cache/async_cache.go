@@ -1,9 +1,9 @@
 package cache
 
 import (
-	"github.com/gdd3/chproxy/clients"
-	"github.com/gdd3/chproxy/config"
 	"github.com/go-redis/redis/v8"
+	"github.com/maria-soozar/chproxy/clients"
+	"github.com/maria-soozar/chproxy/config"
 	"time"
 )
 

@@ -18,7 +18,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 
-	"github.com/gdd3/chproxy/config"
+	"github.com/maria-soozar/chproxy/config"
 )
 
 const (

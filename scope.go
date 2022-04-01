@@ -14,9 +14,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gdd3/chproxy/cache"
-	"github.com/gdd3/chproxy/config"
-	"github.com/gdd3/chproxy/log"
+	"github.com/maria-soozar/chproxy/cache"
+	"github.com/maria-soozar/chproxy/config"
+	"github.com/maria-soozar/chproxy/log"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
