@@ -34,3 +34,5 @@ require (
 	golang.org/x/text v0.3.6 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 )
+
+replace github.com/Vertamedia/chproxy => github.com/maria-soozar/chproxy v1.14.0
